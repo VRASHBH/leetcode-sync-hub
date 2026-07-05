@@ -1,9 +1,17 @@
 # 🚀 LeetCode Sync Hub
 
-Total Solved: 7
+## 📊 Statistics
 
-Easy: 6
-Medium: 1
-Hard: 0
+| Difficulty | Count |
+|------------|--------|
+| Easy | 0 |
+| Medium | 0 |
+| Hard | 0 |
 
-Last Updated: 2026-07-06 02:38
+## 🎯 Total Solved
+
+0
+
+## 🕒 Last Updated
+
+-
