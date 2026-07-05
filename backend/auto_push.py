@@ -43,12 +43,26 @@ Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}
 
     print("✅ README Updated")
 
-def save_to_database(filename):
+def save_to_database(filename, difficulty):
 
     problem_name = filename.replace(".cpp", "")
 
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
+
+    # Duplicate check
+    cur.execute("""
+    SELECT COUNT(*)
+    FROM solutions
+    WHERE problem_name = ?
+    """, (problem_name,))
+
+    exists = cur.fetchone()[0]
+
+    if exists:
+        print("⚠️ Solution Already Exists")
+        conn.close()
+        return False
 
     cur.execute("""
     INSERT INTO solutions(
@@ -59,7 +73,7 @@ def save_to_database(filename):
     VALUES(?,?,?)
     """, (
         problem_name,
-        "Easy",
+        difficulty,
         "C++"
     ))
 
@@ -68,6 +82,7 @@ def save_to_database(filename):
 
     print("✅ Database Updated")
 
+    return True
 
 class SolutionHandler(FileSystemEventHandler):
 
@@ -81,11 +96,29 @@ class SolutionHandler(FileSystemEventHandler):
 
         filename = os.path.basename(event.src_path)
 
+        # Difficulty Detection
+        if "Easy" in event.src_path:
+            difficulty = "Easy"
+        elif "Medium" in event.src_path:
+            difficulty = "Medium"
+        elif "Hard" in event.src_path:
+            difficulty = "Hard"
+        else:
+            difficulty = "Unknown"
+
         print(f"[NEW] {filename}")
+        print(f"Difficulty: {difficulty}")
 
         try:
 
-            save_to_database(filename)
+            inserted = save_to_database(
+                filename,
+                difficulty
+            )
+
+            if not inserted:
+                return
+
             update_readme()
 
             subprocess.run(
@@ -113,7 +146,6 @@ class SolutionHandler(FileSystemEventHandler):
         except Exception as e:
             print("❌ Error:", e)
 
-
 if __name__ == "__main__":
 
     observer = Observer()
@@ -121,7 +153,7 @@ if __name__ == "__main__":
     observer.schedule(
         SolutionHandler(),
         "solutions",
-        recursive=False
+        recursive=True
     )
 
     observer.start()
