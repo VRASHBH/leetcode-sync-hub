@@ -6,7 +6,42 @@ import time
 import os
 
 DB_PATH = "database/solutions.db"
+from datetime import datetime
 
+def update_readme():
+
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("SELECT COUNT(*) FROM solutions")
+    total = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM solutions WHERE difficulty='Easy'")
+    easy = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM solutions WHERE difficulty='Medium'")
+    medium = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM solutions WHERE difficulty='Hard'")
+    hard = cur.fetchone()[0]
+
+    conn.close()
+
+    content = f"""# 🚀 LeetCode Sync Hub
+
+Total Solved: {total}
+
+Easy: {easy}
+Medium: {medium}
+Hard: {hard}
+
+Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+"""
+
+    with open("README.md", "w", encoding="utf-8") as f:
+        f.write(content)
+
+    print("✅ README Updated")
 
 def save_to_database(filename):
 
@@ -51,6 +86,7 @@ class SolutionHandler(FileSystemEventHandler):
         try:
 
             save_to_database(filename)
+            update_readme()
 
             subprocess.run(
                 ["git", "add", "."],
