@@ -1,0 +1,42 @@
+body{
+    background:#0f172a;
+    color:white;
+    font-family:Arial;
+}
+
+.container{
+    width:80%;
+    margin:auto;
+}
+
+h1{
+    text-align:center;
+}
+
+.stats{
+    display:flex;
+    gap:20px;
+}
+
+.card{
+    background:#1e293b;
+    padding:20px;
+    border-radius:10px;
+    margin-top:20px;
+}
+
+.easy{
+    border-left:5px solid green;
+}
+
+.medium{
+    border-left:5px solid orange;
+}
+
+.hard{
+    border-left:5px solid red;
+}
+
+p{
+    font-size:30px;
+}
