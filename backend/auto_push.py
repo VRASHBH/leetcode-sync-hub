@@ -4,9 +4,18 @@ import subprocess
 import sqlite3
 import time
 import os
+from datetime import datetime
 
 DB_PATH = "database/solutions.db"
-from datetime import datetime
+
+SUPPORTED_EXTENSIONS = {
+    ".cpp": "C++",
+    ".py": "Python",
+    ".java": "Java",
+    ".sql": "SQL",
+    ".js": "JavaScript"
+}
+
 
 def update_readme():
 
@@ -16,41 +25,78 @@ def update_readme():
     cur.execute("SELECT COUNT(*) FROM solutions")
     total = cur.fetchone()[0]
 
-    cur.execute("SELECT COUNT(*) FROM solutions WHERE difficulty='Easy'")
+    cur.execute(
+        "SELECT COUNT(*) FROM solutions WHERE difficulty='Easy'"
+    )
     easy = cur.fetchone()[0]
 
-    cur.execute("SELECT COUNT(*) FROM solutions WHERE difficulty='Medium'")
+    cur.execute(
+        "SELECT COUNT(*) FROM solutions WHERE difficulty='Medium'"
+    )
     medium = cur.fetchone()[0]
 
-    cur.execute("SELECT COUNT(*) FROM solutions WHERE difficulty='Hard'")
+    cur.execute(
+        "SELECT COUNT(*) FROM solutions WHERE difficulty='Hard'"
+    )
     hard = cur.fetchone()[0]
+
+    cur.execute("""
+    SELECT language, COUNT(*)
+    FROM solutions
+    GROUP BY language
+    ORDER BY COUNT(*) DESC
+    """)
+
+    language_stats = cur.fetchall()
 
     conn.close()
 
+    language_section = ""
+
+    for lang, count in language_stats:
+        language_section += f"- {lang}: {count}\n"
+
     content = f"""# 🚀 LeetCode Sync Hub
+
+## 📊 Statistics
 
 Total Solved: {total}
 
-Easy: {easy}
-Medium: {medium}
-Hard: {hard}
+🟢 Easy: {easy}
+🟡 Medium: {medium}
+🔴 Hard: {hard}
 
-Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+## 💻 Languages
+
+{language_section}
+
+## 🔄 Auto Synced
+
+Last Updated:
+{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 """
 
-    with open("README.md", "w", encoding="utf-8") as f:
+    with open(
+        "README.md",
+        "w",
+        encoding="utf-8"
+    ) as f:
         f.write(content)
 
     print("✅ README Updated")
 
-def save_to_database(filename, difficulty):
 
-    problem_name = filename.replace(".cpp", "")
+def save_to_database(
+    filename,
+    difficulty,
+    language
+):
+
+    problem_name = os.path.splitext(filename)[0]
 
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    # Duplicate check
     cur.execute("""
     SELECT COUNT(*)
     FROM solutions
@@ -74,7 +120,7 @@ def save_to_database(filename, difficulty):
     """, (
         problem_name,
         difficulty,
-        "C++"
+        language
     ))
 
     conn.commit()
@@ -84,36 +130,46 @@ def save_to_database(filename, difficulty):
 
     return True
 
+
 class SolutionHandler(FileSystemEventHandler):
 
-    def on_created(self, event):
+    def process_file(self, file_path):
 
-        if event.is_directory:
+        if os.path.isdir(file_path):
             return
 
-        if not event.src_path.endswith(".cpp"):
+        ext = os.path.splitext(file_path)[1]
+
+        if ext not in SUPPORTED_EXTENSIONS:
             return
 
-        filename = os.path.basename(event.src_path)
+        filename = os.path.basename(file_path)
 
-        # Difficulty Detection
-        if "Easy" in event.src_path:
+        language = SUPPORTED_EXTENSIONS[ext]
+
+        if "Easy" in file_path:
             difficulty = "Easy"
-        elif "Medium" in event.src_path:
+
+        elif "Medium" in file_path:
             difficulty = "Medium"
-        elif "Hard" in event.src_path:
+
+        elif "Hard" in file_path:
             difficulty = "Hard"
+
         else:
             difficulty = "Unknown"
 
-        print(f"[NEW] {filename}")
+        print(f"\n📄 New Solution Found")
+        print(f"File: {filename}")
         print(f"Difficulty: {difficulty}")
+        print(f"Language: {language}")
 
         try:
 
             inserted = save_to_database(
                 filename,
-                difficulty
+                difficulty,
+                language
             )
 
             if not inserted:
@@ -145,6 +201,13 @@ class SolutionHandler(FileSystemEventHandler):
 
         except Exception as e:
             print("❌ Error:", e)
+
+    def on_created(self, event):
+        self.process_file(event.src_path)
+
+    def on_modified(self, event):
+        self.process_file(event.src_path)
+
 
 if __name__ == "__main__":
 

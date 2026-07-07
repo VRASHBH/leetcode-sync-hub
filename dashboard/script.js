@@ -1,48 +1,139 @@
-async function loadStats(){
+async function loadStats() {
+    try {
+        const response = await fetch(
+            "http://127.0.0.1:8000/stats"
+        );
 
-    const response = await fetch(
-        "http://127.0.0.1:8000/stats"
-    );
+        const data = await response.json();
 
-    const data = await response.json();
+        document.getElementById("total").innerText =
+            data.total_solved;
 
-    document.getElementById("total").innerText =
-        data.total_solved;
+        document.getElementById("easy").innerText =
+            data.easy;
 
-    document.getElementById("easy").innerText =
-        data.easy;
+        document.getElementById("medium").innerText =
+            data.medium;
 
-    document.getElementById("medium").innerText =
-        data.medium;
+        document.getElementById("hard").innerText =
+            data.hard;
 
-    document.getElementById("hard").innerText =
-        data.hard;
+        createChart(
+            data.easy,
+            data.medium,
+            data.hard
+        );
+
+    } catch (error) {
+        console.error("Stats Error:", error);
+    }
 }
 
-async function loadSolutions(){
+function createChart(easy, medium, hard) {
 
-    const response = await fetch(
-        "http://127.0.0.1:8000/solutions"
-    );
+    const ctx =
+        document.getElementById("difficultyChart");
 
-    const data = await response.json();
+    if (!ctx) return;
 
-    const list =
-        document.getElementById("solutions");
+    new Chart(ctx, {
+        type: "pie",
 
-    list.innerHTML = "";
+        data: {
+            labels: [
+                "Easy",
+                "Medium",
+                "Hard"
+            ],
 
-    data.forEach(solution => {
-
-        const li =
-            document.createElement("li");
-
-        li.innerText =
-            `${solution[0]} (${solution[1]})`;
-
-        list.appendChild(li);
+            datasets: [{
+                data: [
+                    easy,
+                    medium,
+                    hard
+                ]
+            }]
+        }
     });
 }
 
-loadStats();
-loadSolutions();
+async function loadSolutions() {
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:8000/solutions"
+        );
+
+        const data = await response.json();
+
+        const list =
+            document.getElementById("solutions");
+
+        list.innerHTML = "";
+
+        data.forEach(solution => {
+
+            const li =
+                document.createElement("li");
+
+            li.innerText =
+                `${solution[0]} (${solution[1]})`;
+
+            list.appendChild(li);
+        });
+
+    } catch (error) {
+        console.error("Solutions Error:", error);
+    }
+}
+
+function setupSearch() {
+
+    const search =
+        document.getElementById("search");
+
+    if (!search) return;
+
+    search.addEventListener(
+        "input",
+        function () {
+
+            const value =
+                this.value.toLowerCase();
+
+            const items =
+                document.querySelectorAll(
+                    "#solutions li"
+                );
+
+            items.forEach(item => {
+
+                item.style.display =
+                    item.innerText
+                        .toLowerCase()
+                        .includes(value)
+
+                        ? "block"
+                        : "none";
+            });
+        }
+    );
+}
+
+function loadStreak() {
+
+    document.getElementById("streak")
+        .innerText = "7 Days";
+}
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        loadStats();
+        loadSolutions();
+        loadStreak();
+        setupSearch();
+    }
+);
